@@ -5,15 +5,6 @@ import io
 import xlsxwriter
 import math
 
-# Define weights for categories
-weights = {
-    "Auto eval": 0.05,
-    "TO BE_SER": 0.05,
-    "TO DECIDE_DECIDIR": 0.05,
-    "TO DO_HACER": 0.40,
-    "TO KNOW_SABER": 0.45
-}
-
 def custom_round(value):
     return math.floor(value + 0.5)
 
@@ -142,42 +133,29 @@ def process_data(df, trimester_choice):
         grp = sorted(groups[cat], key=lambda x: x['seq_num'])
         names = [d['new_name'] for d in grp]
         
-        # --- DYNAMIC LOGIC: Use pre-calculated category score based on trimester choice ---
+        # --- MODIFICATION: Use pre-calculated category score directly from the CSV
         category_score_col = f"{trimester_choice} - 2025 - {cat} - Category Score"
-        
-        raw_avg = pd.Series(dtype='float64')
-        if category_score_col in df.columns:
-            raw_avg = pd.to_numeric(df[category_score_col], errors='coerce')
-        else:
-            # Fallback for columns with no space
-            category_score_col_no_space = f"{trimester_choice}- 2025 - {cat} - Category Score"
-            if category_score_col_no_space in df.columns:
-                raw_avg = pd.to_numeric(df[category_score_col_no_space], errors='coerce')
-            else:
-                numeric = df_cleaned[names].apply(pd.to_numeric, errors='coerce')
-                sum_earned = numeric.sum(axis=1, skipna=True)
-                max_points_df = pd.DataFrame(index=df_cleaned.index)
-                for d in grp:
-                    col = d['new_name']
-                    max_pts = d['max_points']
-                    max_points_df[col] = numeric[col].notna().astype(float) * max_pts
-                sum_possible = max_points_df.sum(axis=1, skipna=True)
-                raw_avg = (sum_earned / sum_possible) * 100
-        
-        raw_avg = raw_avg.fillna(0)
-        # --- END DYNAMIC LOGIC ---
-        
-        wt = None
-        for key in weights:
-            if cat.lower() == key.lower():
-                wt = weights[key]
-                break
-        
-        weighted = raw_avg * wt if wt is not None else raw_avg
-        avg_col = f"Average {cat}"
-        df_cleaned[avg_col] = weighted
+        category_score_col_no_space = f"{trimester_choice}- 2025 - {cat} - Category Score"
 
-        final_coded.extend(names + [avg_col])
+        if category_score_col in df.columns:
+            df_cleaned[f"Average {cat}"] = pd.to_numeric(df[category_score_col], errors='coerce')
+        elif category_score_col_no_space in df.columns:
+            df_cleaned[f"Average {cat}"] = pd.to_numeric(df[category_score_col_no_space], errors='coerce')
+        else:
+            # Fallback to calculate the average if the Category Score column is missing
+            numeric = df_cleaned[names].apply(pd.to_numeric, errors='coerce')
+            sum_earned = numeric.sum(axis=1, skipna=True)
+            max_points_df = pd.DataFrame(index=df_cleaned.index)
+            for d in grp:
+                col = d['new_name']
+                max_pts = d['max_points']
+                max_points_df[col] = numeric[col].notna().astype(float) * max_pts
+            sum_possible = max_points_df.sum(axis=1, skipna=True)
+            raw_avg = (sum_earned / sum_possible) * 100
+            df_cleaned[f"Average {cat}"] = raw_avg.fillna(0)
+        # --- END MODIFICATION ---
+
+        final_coded.extend(names + [f"Average {cat}"])
 
     final_order = general_reordered + final_coded
     df_final = df_cleaned[final_order]
@@ -274,15 +252,4 @@ if uploaded_file:
     
     # Only generate the report if a specific trimester has been selected
     if trimester_choice and trimester_choice != "Select a Trimester":
-        filtered_df = create_single_trimester_gradebook(df, trimester_choice)
-
-        if filtered_df is not None:
-            result = process_data(filtered_df, trimester_choice)
-            st.success("✅ Grade report generated!")
-
-            st.download_button(
-                label="📥 Download Excel Report",
-                data=result.getvalue(),
-                file_name=f"gradebook_{trimester_choice}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        filtered_df = create_single_tr
