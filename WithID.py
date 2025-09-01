@@ -244,7 +244,7 @@ def process_data(df, trimester_choice):
 
 # --- Streamlit App ---
 
-st.title("📊 MR´O Private Gradebook Analyzer")
+st.title("📊 MR´O Private Analyzer")
 
 uploaded_file = st.file_uploader("Upload a Schoology Gradebook CSV", type="csv")
 
