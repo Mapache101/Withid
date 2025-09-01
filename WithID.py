@@ -265,13 +265,15 @@ if uploaded_file:
     st.success("File uploaded successfully!")
     st.subheader("Select Trimester to Process")
     
+    # We will use a unique key for the selectbox to prevent caching issues
     trimester_choice = st.selectbox(
         "Choose the trimester you want to process:",
-        ("Term1", "Term2", "Term3")
+        ("Select a Trimester", "Term1", "Term2", "Term3"),
+        key="trimester_select"
     )
     
-    # Auto-generate the report upon trimester selection or file upload
-    if trimester_choice:
+    # Only generate the report if a specific trimester has been selected
+    if trimester_choice and trimester_choice != "Select a Trimester":
         filtered_df = create_single_trimester_gradebook(df, trimester_choice)
 
         if filtered_df is not None:
