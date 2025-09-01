@@ -5,6 +5,17 @@ import io
 import xlsxwriter
 import math
 
+# Define weights for categories
+# This section is no longer used, but kept for context from previous versions
+# of the code.
+weights = {
+    "Auto eval": 0.05,
+    "TO BE_SER": 0.05,
+    "TO DECIDE_DECIDIR": 0.05,
+    "TO DO_HACER": 0.40,
+    "TO KNOW_SABER": 0.45
+}
+
 def custom_round(value):
     return math.floor(value + 0.5)
 
@@ -252,4 +263,15 @@ if uploaded_file:
     
     # Only generate the report if a specific trimester has been selected
     if trimester_choice and trimester_choice != "Select a Trimester":
-        filtered_df = create_single_tr
+        filtered_df = create_single_trimester_gradebook(df, trimester_choice)
+
+        if filtered_df is not None:
+            result = process_data(filtered_df, trimester_choice)
+            st.success("✅ Grade report generated!")
+
+            st.download_button(
+                label="📥 Download Excel Report",
+                data=result.getvalue(),
+                file_name=f"gradebook_{trimester_choice}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
