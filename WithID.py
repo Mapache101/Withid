@@ -3,7 +3,6 @@ import pandas as pd
 import re
 import io
 import xlsxwriter
-from datetime import datetime
 import math
 
 # Define weights for categories
@@ -19,7 +18,6 @@ def custom_round(value):
     return math.floor(value + 0.5)
 
 def create_single_trimester_gradebook(df, trimester_to_keep):
-
     # Define the general columns to always keep
     general_columns = df.columns[:5].tolist()
     
@@ -66,7 +64,7 @@ def create_single_trimester_gradebook(df, trimester_to_keep):
 
     return filtered_df
 
-def process_data(df, teacher, subject, course, level, trimester_choice):
+def process_data(df, trimester_choice):
     columns_to_drop = [
         "Nombre de usuario", "Username", "Promedio General", "2025", "Term3 - 2025"
     ]
@@ -168,7 +166,7 @@ def process_data(df, teacher, subject, course, level, trimester_choice):
         
         raw_avg = raw_avg.fillna(0)
         # --- END DYNAMIC LOGIC ---
-            
+        
         wt = None
         for key in weights:
             if cat.lower() == key.lower():
@@ -199,7 +197,7 @@ def process_data(df, teacher, subject, course, level, trimester_choice):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter',
                         engine_kwargs={'options': {'nan_inf_to_errors': True}}) as writer:
-        df_final.to_excel(writer, 'Sheet1', startrow=6, index=False)
+        df_final.to_excel(writer, 'Sheet1', startrow=0, index=False)
         wb = writer.book
         ws = writer.sheets['Sheet1']
 
@@ -226,26 +224,20 @@ def process_data(df, teacher, subject, course, level, trimester_choice):
         final_fmt = wb.add_format({'bold': True, 'border': 1, 'bg_color': '#90EE90'})
         b_fmt = wb.add_format({'border': 1})
 
-        ws.write('A1', "Profesor/a:", b_fmt); ws.write('B1', teacher, b_fmt)
-        ws.write('A2', "Asignatura:", b_fmt); ws.write('B2', subject, b_fmt)
-        ws.write('A3', "Clase:", b_fmt);    ws.write('B3', course, b_fmt)
-        ws.write('A4', "Nivel:", b_fmt);    ws.write('B4', level, b_fmt)
-        ws.write('A5', datetime.now().strftime("%y-%m-%d"), b_fmt)
-
         for idx, col in enumerate(df_final.columns):
             fmt = header_fmt
             if col.startswith("Average "):
                 fmt = avg_hdr
             elif col == "Final Grade":
                 fmt = final_fmt
-            ws.write(6, idx, col, fmt)
+            ws.write(0, idx, col, fmt)
 
         avg_cols = {c for c in df_final.columns if c.startswith("Average ")}
         for col_idx, col in enumerate(df_final.columns):
             fmt = avg_data if col in avg_cols else final_fmt if col == "Final Grade" else b_fmt
             for row_offset in range(len(df_final)):
                 val = df_final.iloc[row_offset, col_idx]
-                excel_row = 7 + row_offset
+                excel_row = 1 + row_offset
                 ws.write(excel_row, col_idx, "" if pd.isna(val) else val, fmt)
 
         name_terms = ["name", "first", "last"]
@@ -278,24 +270,17 @@ if uploaded_file:
         ("Term1", "Term2", "Term3")
     )
     
-    with st.form("form"):
-        st.subheader("Teacher/Class Info")
-        teacher = st.text_input("Teacher Name")
-        subject = st.text_input("Subject")
-        course = st.text_input("Class/Course Name")
-        level = st.text_input("Level or Grade")
-        submitted = st.form_submit_button("Generate Grade Report")
-
-    if submitted:
+    # Auto-generate the report upon trimester selection or file upload
+    if trimester_choice:
         filtered_df = create_single_trimester_gradebook(df, trimester_choice)
 
         if filtered_df is not None:
-            result = process_data(filtered_df, teacher, subject, course, level, trimester_choice)
+            result = process_data(filtered_df, trimester_choice)
             st.success("✅ Grade report generated!")
 
             st.download_button(
                 label="📥 Download Excel Report",
                 data=result.getvalue(),
-                file_name=f"{subject}_{course}_{trimester_choice}_grades.xlsx",
+                file_name=f"gradebook_{trimester_choice}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
