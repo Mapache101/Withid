@@ -68,8 +68,7 @@ def create_single_trimester_gradebook(df, trimester_to_keep):
 
 def process_data(df, teacher, subject, course, level, trimester_choice):
     columns_to_drop = [
-        "Nombre de usuario", "Username", "Promedio General",
-        "Unique User ID", "2025", "Term3 - 2025"
+        "Nombre de usuario", "Username", "Promedio General", "2025", "Term3 - 2025"
     ]
     df.drop(columns=columns_to_drop, inplace=True, errors='ignore')
 
@@ -264,7 +263,7 @@ def process_data(df, teacher, subject, course, level, trimester_choice):
 
 # --- Streamlit App ---
 
-st.title("📊 Schoology Gradebook Analyzer")
+st.title("📊 MR´O Private Gradebook Analyzer")
 
 uploaded_file = st.file_uploader("Upload a Schoology Gradebook CSV", type="csv")
 
